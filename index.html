@@ -908,8 +908,8 @@
     <div class="nav-tab admin-only" onclick="showPage('transactions')" id="tab-transactions" style="display:none;">💰 Transactions</div>
     <div class="nav-tab admin-only" onclick="showPage('addTransaction')" id="tab-addTransaction" style="display:none;">🧾 Add Payment</div>
     <div class="nav-tab admin-only" onclick="showPage('addVolunteer')" id="tab-addVolunteer" style="display:none;">➕ Add Volunteer</div>
-    <div class="nav-tab admin-only" onclick="showPage('printCertificate')" id="tab-printCertificate" style="display:none;">🏅 Certificate</div>
-    <div class="nav-tab admin-only" onclick="showPage('printVolCard')" id="tab-printVolCard" style="display:none;">🪪 Vol Card</div>
+    <div class="nav-tab admin-only" onclick="showPage('printCertificate'); populateCertDonorDropdown();" id="tab-printCertificate" style="display:none;">🏅 Certificate</div>
+    <div class="nav-tab admin-only" onclick="showPage('printVolCard'); populateVolCardSelect(); populateCertDonorDropdown();" id="tab-printVolCard" style="display:none;">🪪 Vol Card</div>
   </div>
 
   <!-- CONTENT -->
@@ -1122,6 +1122,12 @@
       <div class="card">
         <div class="card-title">✏️ Certificate Details</div>
         <div class="form-grid">
+          <div class="form-group form-full">
+            <label>Select Donor from Registry</label>
+            <select id="cert_donor_select" onchange="fillCertFromDonor()">
+              <option value="">-- Pick a Donor --</option>
+            </select>
+          </div>
           <div class="form-group">
             <label>Donor Name (Kannada) *</label>
             <input type="text" id="cert_name_kn" placeholder="ದಾನಿಯ ಹೆಸರು" oninput="updateCertPreview()">
@@ -1131,8 +1137,8 @@
             <input type="text" id="cert_name_en" placeholder="Full Name in English" oninput="updateCertPreview()">
           </div>
           <div class="form-group">
-            <label>Amount (₹) *</label>
-            <input type="text" id="cert_amount" placeholder="e.g. ೧,೦೦,೦೦೦" oninput="updateCertPreview()">
+            <label>Total Amount Contributed (₹) *</label>
+            <input type="text" id="cert_amount" placeholder="Auto-filled from transactions" oninput="updateCertPreview()">
           </div>
           <div class="form-group">
             <label>Date</label>
@@ -1546,8 +1552,15 @@ function renderDonorsTable(data) {
 
   const adminCols = userRole === 'admin' ? '<th>Actions</th>' : '';
   let html = `<div class="table-wrap"><table>
-    <tr><th>#</th><th>Name</th><th>Phone</th><th>City</th><th>Interest</th><th>Volunteer</th><th>Date</th><th>Notes</th>${adminCols}</tr>`;
+    <tr><th>#</th><th>Name</th><th>Phone</th><th>City</th><th>Interest</th><th>Contributed (₹)</th><th>Volunteer</th><th>Date</th><th>Notes</th>${adminCols}</tr>`;
   data.forEach((d, i) => {
+    // Sum transactions for this donor
+    const donorTotal = allTransactions
+      .filter(t => t['Donor ID'] === d['ID'] || t['Donor Name'] === d['Name'])
+      .reduce((s, t) => s + (parseFloat(t['Amount (INR)']) || 0), 0);
+    const contribCell = donorTotal > 0
+      ? `<td style="color:var(--green);font-weight:600;">₹${formatINR(donorTotal)}</td>`
+      : `<td style="color:var(--text-light);">—</td>`;
     const interest = d['Interest'] || 'Maybe';
     const badgeClass = interest === 'Yes' ? 'badge-yes' : interest === 'No' ? 'badge-no' : 'badge-maybe';
     const escapedId = d['ID'].replace(/'/g, "\'");
@@ -1569,6 +1582,7 @@ function renderDonorsTable(data) {
       <td>${d['Phone']}</td>
       <td>${d['City'] || '—'}</td>
       <td><span class="badge ${badgeClass}">${interest}</span></td>
+      ${contribCell}
       <td style="font-size:12px;">${d['Volunteer Name'] || '—'}</td>
       <td style="font-size:12px;">${d['Contacted On']}</td>
       <td style="font-size:12px; max-width:150px; word-wrap:break-word;">${d['Notes'] || '—'}</td>
@@ -1724,7 +1738,7 @@ function populateDonorDropdown() {
 // ====================================================
 function loadTransactions() {
   api('getTransactions', { token: sessionToken }).then(res => {
-    if (res.success) { allTransactions = res.data; renderTransactionsTable(allTransactions); }
+    if (res.success) { allTransactions = res.data; renderTransactionsTable(allTransactions); populateCertDonorDropdown(); }
   });
 }
 
@@ -1832,6 +1846,7 @@ function initPrintPages() {
 
   // Populate vol card select from loaded volunteers
   populateVolCardSelect();
+  populateCertDonorDropdown();
   updateCertPreview();
   updateVolCardPreview();
 }
@@ -2103,9 +2118,11 @@ function buildCertHTML(nameKn, nameEn, amount, date, year) {
       </div>
     </div>
 
-    <div style="position:absolute;top:119mm;left:0;right:0;height:0.5pt;background:linear-gradient(90deg,transparent,#B8882A,transparent);margin:0 14mm;"></div>
-    <div style="position:absolute;top:121mm;left:0;right:0;text-align:center;font-size:8.5pt;font-weight:700;color:#B8882A;">तत्र लोक्या गुरुः श्रीमन् मध्वाचार्य मूल महासंस्थानम्</div>
-    <div style="position:absolute;top:127mm;left:0;right:0;text-align:center;font-size:7pt;font-style:italic;color:#5C3310;">"May the blessings of Gomata and Sri Vadiraja Gurusarvabhouma grace you and your family always."</div>
+    <div style="position:absolute;top:116mm;left:0;right:0;height:0.5pt;background:linear-gradient(90deg,transparent,#B8882A,transparent);margin:0 14mm;"></div>
+    <div style="position:absolute;top:118mm;left:0;right:0;text-align:center;font-size:9pt;font-weight:700;color:#B8882A;letter-spacing:0.3px;">श्रीमन्मध्वाचार्य मूलमहासंस्थानम्</div>
+    <div style="position:absolute;top:125mm;left:0;right:0;height:0.5pt;background:linear-gradient(90deg,transparent,#B8882A,transparent);margin:0 14mm;"></div>
+    <div style="position:absolute;top:127mm;left:0;right:0;text-align:center;font-size:7pt;font-weight:700;color:#5C3310;">तत्र लोक्या गुरुः श्रीमन् मध्वाचार्य मूल महासंस्थानम्</div>
+    <div style="position:absolute;top:132mm;left:0;right:0;text-align:center;font-size:6.5pt;font-style:italic;color:#5C3310;">"May the blessings of Gomata and Sri Vadiraja Gurusarvabhouma grace you and your family always."</div>
 
     <div style="position:absolute;bottom:12mm;left:14mm;right:14mm;display:flex;justify-content:space-between;align-items:flex-start;">
       <div style="text-align:center;width:48mm;">
@@ -2189,6 +2206,7 @@ function buildVolCardHTML(nameKn, nameEn, volId, area) {
 
 function clearCertForm() {
   ['cert_name_kn','cert_name_en','cert_amount'].forEach(id => document.getElementById(id).value = '');
+  const cds = document.getElementById('cert_donor_select'); if(cds) cds.value='';
   updateCertPreview();
 }
 
