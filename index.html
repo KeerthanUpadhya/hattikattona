@@ -1531,6 +1531,7 @@ function loadDonors() {
     if (res.success) {
       allDonors = res.data;
       populateDonorDropdown();
+        populateCertDonorDropdown();
       const q = document.getElementById('donorSearch') ? document.getElementById('donorSearch').value : '';
       const interest = document.getElementById('interestFilter') ? document.getElementById('interestFilter').value : '';
       if (q || interest) filterDonors();
@@ -1873,6 +1874,41 @@ function fillVolCardFromRegistry() {
   updateVolCardPreview();
 }
 
+// ── CERT DONOR DROPDOWN ───────────────────────────────────────────────────────
+function populateCertDonorDropdown() {
+  const sel = document.getElementById('cert_donor_select');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">-- Pick a Donor --</option>';
+  allDonors.forEach(d => {
+    const total = allTransactions
+      .filter(t => t['Donor ID'] === d['ID'] || t['Donor Name'] === d['Name'])
+      .reduce((s, t) => s + (parseFloat(t['Amount (INR)']) || 0), 0);
+    const label = total > 0 ? `${d['Name']} — ₹${formatINR(total)}` : d['Name'];
+    sel.innerHTML += `<option value="${d['ID']}">${label}</option>`;
+  });
+}
+
+function fillCertFromDonor() {
+  const donorId = document.getElementById('cert_donor_select').value;
+  if (!donorId) return;
+  const donor = allDonors.find(d => d['ID'] === donorId);
+  if (!donor) return;
+  // Fill English name
+  document.getElementById('cert_name_en').value = donor['Name'] || '';
+  // Pre-fill Kannada name — user can edit
+  const knEl = document.getElementById('cert_name_kn');
+  if (!knEl.value) knEl.value = donor['Name'] || '';
+  // Auto-fill total amount from transactions
+  const total = allTransactions
+    .filter(t => t['Donor ID'] === donorId || t['Donor Name'] === donor['Name'])
+    .reduce((s, t) => s + (parseFloat(t['Amount (INR)']) || 0), 0);
+  if (total > 0) {
+    document.getElementById('cert_amount').value = '₹' + formatINR(total);
+  }
+  updateCertPreview();
+  showToast('Donor details filled — please update Kannada name if needed', 'success');
+}
+
 // ── CERTIFICATE PREVIEW ───────────────────────────────────────────────────────
 function updateCertPreview() {
   const nameKn  = document.getElementById('cert_name_kn').value  || '[ದಾನಿಯ ಹೆಸರು]';
@@ -1948,11 +1984,11 @@ function updateCertPreview() {
       </div>
     </div>
 
-    <!-- Blessing -->
-    <div style="position:absolute;top:312px;left:0;right:0;text-align:center;">
-      <div style="font-size:7.5px;font-weight:700;color:#B8882A;">तत्र लोक्या गुरुः श्रीमन् मध्वाचार्य मूल महासंस्थानम्</div>
-      <div style="font-size:6px;font-style:italic;color:#5C3310;margin-top:2px;">"May the blessings of Gomata grace you and your family always."</div>
-    </div>
+    <!-- Sanskrit after amount + Blessing -->
+    <div style="position:absolute;top:303px;left:30px;right:30px;height:0.5px;background:linear-gradient(90deg,transparent,#B8882A,transparent);"></div>
+    <div style="position:absolute;top:308px;left:0;right:0;text-align:center;font-size:9px;font-weight:700;color:#B8882A;letter-spacing:0.3px;">श्रीमन्मध्वाचार्य मूलमहासंस्थानम्</div>
+    <div style="position:absolute;top:322px;left:30px;right:30px;height:0.5px;background:linear-gradient(90deg,transparent,#B8882A,transparent);"></div>
+    <div style="position:absolute;top:328px;left:0;right:0;text-align:center;font-size:6.5px;color:#5C3310;">तत्र लोक्या गुरुः &nbsp;·&nbsp; "May the blessings of Gomata and Sri Vadiraja Gurusarvabhouma grace you always."</div>
 
     <!-- Signatures -->
     <div style="position:absolute;bottom:32px;left:16px;right:16px;display:flex;justify-content:space-between;align-items:flex-end;">
