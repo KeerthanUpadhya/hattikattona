@@ -1130,7 +1130,8 @@
           </div>
           <div class="form-group">
             <label>Donor Name (Kannada) *</label>
-            <input type="text" id="cert_name_kn" placeholder="ದಾನಿಯ ಹೆಸರು" oninput="updateCertPreview()">
+            <input type="text" id="cert_name_kn" placeholder="ಕನ್ನಡದಲ್ಲಿ ಹೆಸರು ಟೈಪ್ ಮಾಡಿ" oninput="updateCertPreview()" style="font-family:'Noto Sans Kannada','Noto Sans',sans-serif;">
+            <div style="font-size:11px;color:var(--text-light);margin-top:4px;">✨ Auto-translated when you pick a donor. Edit if the transliteration needs correction.</div>
           </div>
           <div class="form-group">
             <label>Donor Name (English) *</label>
@@ -1893,11 +1894,11 @@ function fillCertFromDonor() {
   if (!donorId) return;
   const donor = allDonors.find(d => d['ID'] === donorId);
   if (!donor) return;
+
   // Fill English name
-  document.getElementById('cert_name_en').value = donor['Name'] || '';
-  // Pre-fill Kannada name — user can edit
-  const knEl = document.getElementById('cert_name_kn');
-  if (!knEl.value) knEl.value = donor['Name'] || '';
+  const engName = donor['Name'] || '';
+  document.getElementById('cert_name_en').value = engName;
+
   // Auto-fill total amount from transactions
   const total = allTransactions
     .filter(t => t['Donor ID'] === donorId || t['Donor Name'] === donor['Name'])
@@ -1905,8 +1906,37 @@ function fillCertFromDonor() {
   if (total > 0) {
     document.getElementById('cert_amount').value = '₹' + formatINR(total);
   }
+
+  // Auto-transliterate English name → Kannada using Google Translate API
+  const knEl = document.getElementById('cert_name_kn');
+  knEl.value = '⏳ ಅನುವಾದಿಸಲಾಗುತ್ತಿದೆ...';
   updateCertPreview();
-  showToast('Donor details filled — please update Kannada name if needed', 'success');
+
+  // Split name into parts and transliterate each word for better accuracy
+  const words = engName.trim().split(/\s+/);
+  const translitPromises = words.map(word =>
+    fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=kn&dt=t&q=${encodeURIComponent(word)}`)
+      .then(r => r.json())
+      .then(data => {
+        // Google Translate returns nested array: [[["translated","original",...],...],...]
+        return data[0].map(x => x[0]).join('');
+      })
+  );
+
+  Promise.all(translitPromises)
+    .then(translatedWords => {
+      const knName = translatedWords.join(' ');
+      knEl.value = knName;
+      updateCertPreview();
+      showToast('✅ Kannada name auto-filled — please verify and edit if needed', 'success');
+    })
+    .catch(() => {
+      // Fallback if API fails
+      knEl.value = '';
+      knEl.placeholder = 'ಕನ್ನಡದಲ್ಲಿ ಹೆಸರು ಟೈಪ್ ಮಾಡಿ';
+      showToast('Could not auto-translate — please type Kannada name manually', 'error');
+      updateCertPreview();
+    });
 }
 
 // ── CERTIFICATE PREVIEW ───────────────────────────────────────────────────────
@@ -1984,9 +2014,10 @@ function updateCertPreview() {
       </div>
     </div>
 
-    <!-- Sanskrit after amount — small, dark, same size as English -->
-    <div style="position:absolute;top:306px;left:0;right:0;text-align:center;font-size:6.5px;color:#3A1E08;">
-      श्रीमन्मध्वाचार्य मूलमहासंस्थानम् &nbsp;·&nbsp; "May the blessings of Gomata and Sri Vadiraja Gurusarvabhouma grace you and your family always."
+    <!-- Sanskrit after amount — two lines -->
+    <div style="position:absolute;top:304px;left:20px;right:20px;text-align:center;">
+      <div style="font-size:6.5px;color:#3A1E08;">श्रीमन्मध्वाचार्य मूलमहासंस्थानम्</div>
+      <div style="font-size:6.5px;font-style:italic;color:#3A1E08;margin-top:3px;">"May the blessings of Gomata and Sri Vadiraja Gurusarvabhouma grace you and your family always."</div>
     </div>
 
     <!-- Signatures -->
@@ -1998,7 +2029,6 @@ function updateCertPreview() {
       </div>
       <div style="text-align:center;">
         <div style="font-size:7px;font-weight:700;color:#B8882A;">|| ಹಟ್ಟಿ ಕಟ್ಟೋಣ ||</div>
-        <div style="font-size:6px;color:#B8882A;">गोसेवा परमो धर्मः</div>
       </div>
       <div style="text-align:center;width:90px;">
         <div style="width:70px;height:0.5px;background:#B8882A;margin:0 auto 3px;"></div>
@@ -2156,8 +2186,11 @@ function buildCertHTML(nameKn, nameEn, amount, date, year) {
       </div>
     </div>
 
-    <!-- Sanskrit after amount — small, dark, same weight as English -->
-    <div style="position:absolute;top:117mm;left:0;right:0;text-align:center;font-size:7pt;color:#3A1E08;letter-spacing:0.2px;">श्रीमन्मध्वाचार्य मूलमहासंस्थानम् &nbsp;·&nbsp; "May the blessings of Gomata and Sri Vadiraja Gurusarvabhouma grace you and your family always."</div>
+    <!-- Sanskrit after amount — two lines: Sanskrit small dark, then English blessing -->
+    <div style="position:absolute;top:117mm;left:14mm;right:14mm;text-align:center;">
+      <div style="font-size:7pt;color:#3A1E08;letter-spacing:0.2px;">श्रीमन्मध्वाचार्य मूलमहासंस्थानम्</div>
+      <div style="font-size:7pt;font-style:italic;color:#3A1E08;margin-top:1.5mm;">"May the blessings of Gomata and Sri Vadiraja Gurusarvabhouma grace you and your family always."</div>
+    </div>
 
     <div style="position:absolute;bottom:18mm;left:14mm;right:14mm;display:flex;justify-content:space-between;align-items:flex-start;">
       <div style="text-align:center;width:48mm;">
@@ -2167,7 +2200,6 @@ function buildCertHTML(nameKn, nameEn, amount, date, year) {
       </div>
       <div style="text-align:center;">
         <div style="font-size:7pt;font-weight:700;color:#B8882A;">|| ಹಟ್ಟಿ ಕಟ್ಟೋಣ ||</div>
-        <div style="font-size:6.5pt;color:#B8882A;">गोसेवा परमो धर्मः</div>
       </div>
       <div style="text-align:center;width:48mm;">
         <div style="width:38mm;height:0.7pt;background:#B8882A;margin:0 auto 2mm;"></div>
