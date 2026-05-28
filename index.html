@@ -1801,6 +1801,20 @@ function submitTransaction() {
     return;
   }
 
+  // ── Duplicate receipt check (client-side, instant) ──────────────────────────
+  const duplicate = allTransactions.find(t =>
+    t['Receipt Number'] && t['Receipt Number'].toString().trim().toLowerCase() === receipt.toLowerCase()
+  );
+  if (duplicate) {
+    showMsg('addTxnError',
+      `⚠️ Receipt number "${receipt}" already exists — recorded for ${duplicate['Donor Name']} on ${duplicate['Payment Date']}. Please verify.`
+    );
+    document.getElementById('t_receipt').focus();
+    document.getElementById('t_receipt').style.borderColor = 'var(--saffron)';
+    return;
+  }
+  document.getElementById('t_receipt').style.borderColor = '';
+
   const [donorId, donorName] = donorRaw.split('|');
   const data = {
     donorId, donorName,
