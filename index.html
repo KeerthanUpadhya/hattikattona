@@ -2192,18 +2192,17 @@ function buildCertHTML(nameKn, nameEn, amount, date, year) {
       <div style="font-size:8pt;color:#3A1E08;line-height:1.5;">ಗೋಮಾತೆಯ ಸೇವೆಯಲ್ಲಿ ಸ್ವಯಂಪ್ರೇರಣೆಯಿಂದ ಭಾಗವಹಿಸಿ, ಶ್ರೀ ಕಾಮಧೇನು ಗೋಸಂರಕ್ಷಣಾ ಕೇಂದ್ರದ ಪುನರ್ನಿರ್ಮಾಣ ಮಹಾಯಜ್ಞಕ್ಕೆ ತಮ್ಮ ಅಮೂಲ್ಯ ಕೊಡುಗೆಯನ್ನು ನೀಡಿದ್ದಾರೆ.</div>
     </div>
 
-    <div style="position:absolute;top:97mm;left:0;right:0;display:flex;justify-content:center;">
+    <!-- Amount box + Sanskrit + blessing in one flex column — blessing always flows below box in print -->
+    <div style="position:absolute;top:97mm;left:14mm;right:14mm;display:flex;flex-direction:column;align-items:center;gap:2.5mm;">
       <div style="background:linear-gradient(135deg,#3A1E08,#5C3310);border:1pt solid #B8882A;border-radius:2mm;padding:2mm 10mm;text-align:center;">
         <div style="font-size:6.5pt;color:#EFE3C8;">ಕೊಡುಗೆ ಮೊತ್ತ · Contribution</div>
         <div style="font-size:14pt;font-weight:700;color:#FFD580;">ರೂ. ${amount}</div>
         <div style="font-size:6pt;color:#EFE3C8;">ಹಟ್ಟಿ ಕಟ್ಟೋಣ · ${year}</div>
       </div>
-    </div>
-
-    <!-- Sanskrit + English blessing — safely below contribution box -->
-    <div style="position:absolute;top:114mm;left:14mm;right:14mm;text-align:center;">
-      <div style="font-size:6.5pt;color:#3A1E08;letter-spacing:0.2px;">श्रीमन्मध्वाचार्य मूलमहासंस्थानम्</div>
-      <div style="font-size:6.5pt;font-style:italic;color:#3A1E08;margin-top:1mm;">"May the blessings of Gomata and Sri Vadiraja Gurusarvabhouma grace you and your family always."</div>
+      <div style="text-align:center;width:100%;">
+        <div style="font-size:6.5pt;color:#3A1E08;letter-spacing:0.2px;">श्रीमन्मध्वाचार्य मूलमहासंस्थानम्</div>
+        <div style="font-size:6.5pt;font-style:italic;color:#3A1E08;margin-top:1mm;">"May the blessings of Gomata and Sri Vadiraja Gurusarvabhouma grace you and your family always."</div>
+      </div>
     </div>
 
     <!-- Signatures row — below blessing -->
